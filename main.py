@@ -1,9 +1,36 @@
 import requests
+from typing import List
 from bs4 import BeautifulSoup
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from models import CurrentTicker, UpdateTicker
+from uuid import UUID, uuid4
+
 
 app = FastAPI()
 
+db: List[CurrentTicker] = [
+    CurrentTicker(
+        id=UUID("5cd1e186-1d4a-4378-91fc-bea9f58b4cfa"),
+        current_ticker = "TSLA"
+    )
+]
+
+
+@app.get("/api/v1/ticker")
+async def fetch_ticker():
+    return db
+
+@app.put("/api/v1/ticker/{new_ticker}")
+async def update_ticker(ticker_update: UpdateTicker, new_ticker):
+    for ticker in db:
+        if ticker.current_ticker != new_ticker:
+            if ticker_update.new_ticker is not None:
+                ticker.current_ticker = new_ticker
+            return
+    raise HTTPException(
+        status_code=404,
+        detail = f"ticker '{new_ticker}' does not exist"
+    )
 
 @app.get("/get_ticker_data/{ticker}")
 async def get_ticker_data(ticker: str):
@@ -23,3 +50,4 @@ async def get_ticker_data(ticker: str):
     except KeyError:
         return {"error": "Unable to parse page"}
     await get_ticker_data
+
